@@ -1,3 +1,8 @@
+<br/>
+<img src="Architecture_Qiscus_Test.png">
+<br/>
+<br/>
+
 # Tujuan Desain
 
 Arsitektur ini dirancang untuk memenuhi kebutuhan:
