@@ -104,3 +104,7 @@ AWS WAF
 - Auto-scaling hanya scale saat diperlukan
 - Read replica bisa ditambah hanya jika perlu
 ```
+
+## RCA Document
+
+See RCA Document [here](RCA_Qiscus_Test.pdf)
