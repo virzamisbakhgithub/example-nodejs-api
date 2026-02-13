@@ -1,0 +1,37 @@
+name: Deploy to VM
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            git fetch --all
+            git reset --hard origin/main
+
+            cat > .env << 'EOF'
+            PORT=${{ secrets.PORT }}
+            DB_HOST=${{ secrets.DB_HOST }}
+            DB_PORT=${{ secrets.DB_PORT }}
+            DB_USER=${{ secrets.DB_USER }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            DB_NAME=${{ secrets.DB_NAME }}
+            EOF
+
+            docker compose up -d --build --remove-orphans
+
+            docker image prune -f

@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16
+    container_name: qiscus-test-db
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    restart: unless-stopped
+
+  api:
+    build: .
+    container_name: qiscus-test-api
+    env_file: .env
+    environment:
+      PORT: ${PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - db
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+volumes:
+  dbdata:
