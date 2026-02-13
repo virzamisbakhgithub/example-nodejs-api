@@ -1,3 +1,18 @@
+# List Tools
+- Git
+- Docker
+- New Relic
+- app.diagrams.net
+
+<br/>
+<img src="Newrelic_Dashboard.png">
+<br/>
+<br/>
+
+
+# Tujuan Desain
+
+
 <br/>
 <img src="Architecture_Qiscus_Test.png">
 <br/>
