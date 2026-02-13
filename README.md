@@ -1,134 +1,86 @@
-# Node.js API with PostgreSQL and Custom Logging
+# Tujuan Desain
 
-This is a simple Node.js application that serves a RESTful API with PostgreSQL integration and custom request logging.
-
-## Features
-
-*   **`/` (GET)**: Checks the database connection status.
-*   **`/api/cities` (GET)**: Fetches data from a PostgreSQL table named `citiess`.
-*   **Custom Logging**: Logs request duration/latency, path, client IP, HTTP method, status code, and HTTP host header for all incoming requests.
-*   **.env for Configuration**: Uses environment variables for sensitive configurations like database credentials and port.
-
-## Prerequisites
-
-Before you begin, ensure you have the following installed:
-
-*   **Node.js 18+**: [Download & Install Node.js](https://nodejs.org/en/download/)
-*   **npm** (comes with Node.js)
-*   **PostgreSQL 16+**
-
-## Getting Started
-
-Follow these steps to get the project up and running on your local machine.
-
-### 1. Clone the repository
+Arsitektur ini dirancang untuk memenuhi kebutuhan:
+- Mampu menangani hingga 40.000 request per menit (~667 req/sec)
+- Traffic bersifat read-heavy (dominan GET request)
+- Menghadapi lonjakan trafik (fluctuating load)
+- High availability dan fault tolerant
+- Tetap cost-efficient
+- Siap digunakan di environment production
+### Menggunakan Multi-AZ
+```bash
+Availability Zone A
+Availability Zone B
+ECS task tersebar di dua AZ
+Aurora dengan Multi-AZ + Read Replica
+```
+```bash
+Tujuan
+- High Availability
+Jika satu AZ mengalami gangguan, sistem tetap berjalan di AZ lainnya.
+- Fault Tolerance
+Tidak ada single point of failure pada layer compute maupun database.
+- Zero Downtime Deployment
+Rolling update dapat dilakukan tanpa mengganggu seluruh sistem.
+```
+### Edge Layer (Route53 → CloudFront → WAF → ALB)
 
 ```bash
-git clone <repository_url> # Replace with your repository URL
-cd citiesple-nodejs-api
+Route53 (DNS)
+- Resolusi domain
+- Health check routing
 ```
-
-### 2. Install Dependencies
-
 ```bash
-npm install
+CloudFront (CDN)
+- Permintaan yang sama tidak selalu sampai ke backend
+- Bisa mengurangi load backend hingga 70–80%
+- Mengurangi latency untuk user global
 ```
-
-This command will install all the necessary packages listed in `package.json` (Express, pg, dotenv).
-
-### 3. Environment Variables Configuration
-
-Create a `.env` file in the root of your project directory (`/home/sya/Documents/Qiscus/citiesple-nodejs-api/.env`). This file will store your database connection details and application port. Replace the placeholder values with your actual PostgreSQL credentials and desired port.
-
-```env
-PORT=3000
-DB_USER=your_username
-DB_HOST=your_host
-DB_NAME=your_database_name
-DB_PASSWORD=your_password
-DB_PORT=5432
-```
-
-### 4. Database Setup
-
-This application will get data from a table named `cities` in your PostgreSQL database. If you don't have one, you can create a simple one for testing purposes. Please see the citiesple in the [init_db.sql](./init_db.sql) file.
-
-
-### 5. Running the Application
-
-To start the application, use one of the following commands:
-
-#### Development Mode (with Nodemon)
-
-This mode uses `nodemon` to automatically restart the server whenever code changes are detected.
-
 ```bash
-npm run dev
+AWS WAF
+- Basic DDoS
+- Abuse traffic
+- Malicious request
 ```
-
-#### Using Docker in Development Mode
-
 ```bash
-docker compose up -d --build
+AWS WAF
+- TLS termination
+- Health check container
+- Cross-zone load balancing
+- Distribute traffic ke ECS tasks
 ```
-
-Once the server is running, you will see a message like:
-
+### Application Layer – ECS Fargate
+```bash
+- Tidak perlu mengelola server
+- Stateless container design
+- Mudah auto-scale
+- Mendukung rolling deployment
 ```
-Server running on port 3000
+### Cache Layer – Redis (ElastiCache)
+```bash
+- Redis digunakan sebagai cache-first layer
+- TTL 60–300 detik
+- Target cache hit ratio 70–80%
 ```
-
-## API Endpoints
-
-*   **GET /**
-    *   **Description**: Checks if the application can successfully connect to the PostgreSQL database.
-    *   **Response**: 
-        ```json
-        {
-            "message": "Database connection successful",
-            "status": "OK"
-        }
-        ```
-        or in case of error:
-        ```json
-        {
-            "message": "Database connection failed",
-            "status": "Error",
-            "error": "<error_message>"
-        }
-        ```
-
-*   **GET /api/cities**
-    *   **Description**: Retrieves all entries from the `cities` table.
-    *   **Response**: An array of cities objects.
-        ```json
-        [
-            {
-                "id": 1,
-                "state": "California",
-                "country": "USA",
-                "city_name": "Los Angeles"
-            },
-            {
-                "id": 2,
-                "state": "New York",
-                "country": "USA",
-                "city_name": "New York City"
-            }
-        ]
-        ```
-        or in case of error:
-        ```json
-        {
-            "message": "Error fetching cities data",
-            "error": "<error_message>"
-        }
-        ```
-
-## Logging
-
-When you make a request to any endpoint, you will see a log entry in your console similar to this:
-
+### Data Layer – Aurora PostgreSQL Multi-AZ
+```bash
+- Multi-AZ high availability
+- Automatic failover
+- Better performance dibanding RDS standard
+- Mendukung read replica
 ```
-{"timestamp":"2026-01-29T04:28:39.952Z","method":"GET","url":"/favicon.ico","clientIp":"::ffff:172.19.0.1","host":"localhost:3000","status":404,"durationMs":0.378,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"}
+### Observability Layer
+```bash
+- Monitoring CPU, memory, disk
+- Monitoring request rate
+- Error rate monitoring 
+- Log aggregation
+- Alerting
+```
+### Cost Efficiency Consideration
+```bash
+- CloudFront mengurangi compute cost
+- Redis mengurangi DB load
+- Auto-scaling hanya scale saat diperlukan
+- Read replica bisa ditambah hanya jika perlu
 ```
